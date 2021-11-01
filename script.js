@@ -1,7 +1,9 @@
 //use the math lhs to use the math.js library
-//console.log(math.sqrt(-4).toString());
-const k = 0.5;
+
+//Too lazy to type Math.PI so frequently
 const pi = Math.PI;
+
+//Store time as a closure
 const tInc = () => {
     let t = 0.1;
     return () => {
@@ -11,65 +13,49 @@ const tInc = () => {
         }
     }
 };
+
+//Use closure to animate over time
 let t = tInc();
+
+//expGen stores our mathematical expressions as strings for math.js to interpret
 const expGen = (k) => `(1)/${math.sqrt(4*pi*k*t())}e^((-x^2)/${4*k*t()})`;
+
+//Various materials listed as conductivity coefficients
+const materials = [0.1, 0.3, 0.5, 0.9];
+
+//Big 'ole method which will be called over an interval and re-draw curves based on time evolution
 const plotFoo = () => {
-
     //functions to plot
-    const expFoo1 = expGen(0.1);
-    const expFoo2 = expGen(0.3);
-    const expFoo3 = expGen(0.5);
-    const expFoo4 = expGen(0.9);
-    //Compiling the symbolic expression to something math.js can work with
-    const expression1 = math.compile(expFoo1);
-    const expression2 = math.compile(expFoo2);
-    const expression3 = math.compile(expFoo3);
-    const expression4 = math.compile(expFoo4);
-    //console.log(expression);
+    //Map a string expression for each material coefficient k
+    const expressions = materials.map(material => expGen(material));
+
+    //Generate functions JavaScript can interpret by evaluating the string expressions
+    const functions = expressions.map(expression => math.compile(expression));
+    //Evaluate the functions over the range -2 to 2, with smoothness of 0.01 (lower values => smoother curves)
+    //Store xvalues as an array.
     const xValues = math.range(-2, 2, 0.01).toArray();
-    const yValues1 = xValues.map((x) => {
-        return expression1.eval({x: x});
+
+    //Generate an array of y values (also an array) for each generated function
+    const yValues = functions.map(foo => {
+        return xValues.map((x) => {
+            return foo.eval({x: x})
+        })
     });
-    const yValues2 = xValues.map((x) => {
-        return expression2.eval({x: x});
-    });
-    const yValues3 = xValues.map((x) => {
-        return expression3.eval({x: x});
-    });
-    const yValues4 = xValues.map((x) => {
-        return expression4.eval({x: x});
-    });
+    
+    //Generate graph data for each yValue array
+    const mapData = yValues.map((y, i) => {
+        return {
+            x: xValues,
+            y: y,
+            type: 'scatter',
+            name: `Material with k = ${materials[i]}`
+        }
+    })
+    
+    //Compress data into one variable
+    const data = mapData;
 
-    const material1 = {
-        x: xValues,
-        y: yValues1,
-        type: 'scatter',
-        name: "Material with k = 0.1 W/mk"
-    };
-
-    const material2 = {
-        x: xValues,
-        y: yValues2,
-        type: 'scatter',
-        name: "Material with k = 0.3 W/mk"
-    };
-
-    const material3 = {
-        x: xValues,
-        y: yValues3,
-        type: 'scatter',
-        name: "Material with k = 0.5 W/mk"
-    };
-
-    const material4 = {
-        x: xValues,
-        y: yValues4,
-        type: 'scatter',
-        name: "Material with k = 0.9 W/mk"
-    }
-    //console.log(math.exp(1));
-    const data = [material1, material2, material3, material4];
-
+    //Some configurations for our graphs (also called layout)
     const config = {
         title: "Solution to the 1D heat equation for various materials with time-evolution",
         
@@ -78,9 +64,9 @@ const plotFoo = () => {
         },
 
         margin: {
-            t: 50,
-            b: 20
+            t: 60
         },
+
         xaxis: {
             autotick: false,
             ticks: "inside",
@@ -111,14 +97,21 @@ const plotFoo = () => {
             }
         }
     }
+
+    //Render plot(s) in the .plot DOM element
     const PlotContainer = document.querySelector(".plot");
+    
+    //Plot our data in our DOM, with our data, configs, and using Plotly's responsiveness
     Plotly.newPlot(PlotContainer, data, config, {responsive: true});
 };
 
+//Generate initial static plots of solutions
 const plotInitial = plotFoo();
+
+//Re-render solution curves by calling our plotting method and using an interval to animate changes of time t
 const plotSolutionEvolve = setInterval(plotFoo, 50);
 
+//End animation after 20 seconds.
 setTimeout(() => {
     clearInterval(plotSolutionEvolve)
 }, 20000);
-//newPlot(dom, data, config?)
